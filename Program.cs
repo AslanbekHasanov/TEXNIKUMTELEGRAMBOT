@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Builder;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
@@ -15,6 +16,13 @@ class Program
 
     static async Task Main(string[] args)
     {
+        // Render port talab qilgani uchun kichik HTTP web-server
+        var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+        var builder = WebApplication.CreateBuilder(args);
+        var app = builder.Build();
+        app.MapGet("/", () => "Bot is running!");
+        _ = app.RunAsync($"http://0.0.0.0:{port}");
+
         var botClient = new TelegramBotClient(BotToken);
         using var cts = new CancellationTokenSource();
 
@@ -107,10 +115,10 @@ class Program
         if (message.Text == "/start")
         {
             string infoText = "Assalomu alaykum!\n\n" +
-                              "🤖 **Bu bot nima qila oladi?**\n" +
-                              "Ushbu bot orqali siz administratorga to'g'ridan-to'g'ri xabar, taklif " +
-                              "yoki savollaringizni yuborishingiz mumkin.\n\n" +
-                              "✍️ Shunchaki xabaringizni (matn, rasm yoki audio) shu yerga yozib yuboring!";
+                              "🏛 **Shahrisabz shahar 2-son texnikumi rasmiy muloqot boti**\n\n" +
+                              "Ushbu bot orqali korrupsiyaning oldini olish, shaffoflikni ta'minlash bo'yicha " +
+                              "anonim murojaatlaringizni hamda taklif va savollaringizni yuborishingiz mumkin.\n\n" +
+                              "✍️ Shunchaki xabaringizni shu yerga yozib yuboring!";
 
             await botClient.SendTextMessageAsync(
                 chatId: userId,

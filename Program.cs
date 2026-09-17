@@ -1,4 +1,5 @@
 using System;
+using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -22,6 +23,32 @@ class Program
         var app = builder.Build();
         app.MapGet("/", () => "Bot is running!");
         _ = app.RunAsync($"http://0.0.0.0:{port}");
+
+        // =========================================================
+        // RENDER UXLAMASLIGI UCHUN SELF-PING (O'ZIGA SO'ROV YUBORISH)
+        // =========================================================
+        var appUrl = Environment.GetEnvironmentVariable("RENDER_EXTERNAL_URL");
+        if (!string.IsNullOrEmpty(appUrl))
+        {
+            _ = Task.Run(async () =>
+            {
+                using var httpClient = new HttpClient();
+                while (true)
+                {
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromMinutes(10)); // Har 10 daqiqada
+                        await httpClient.GetAsync(appUrl);
+                        Console.WriteLine("Self-ping yuborildi, Render uyg'oq!");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Self-ping xatolik: {ex.Message}");
+                    }
+                }
+            });
+        }
+        // =========================================================
 
         var botClient = new TelegramBotClient(BotToken);
         using var cts = new CancellationTokenSource();

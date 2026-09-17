@@ -302,12 +302,11 @@ class Program
         TotalMessages++;
         TodayMessages++;
 
-        string headerText = $"📩 **Yangi murojaat!**\n\n" +
-                            $"📂 **Bo'lim:** {category}\n" +
+        string headerText = $"📂 **Bo'lim:** {category}\n" +
                             $"👤 **Kimdan:** {fullName}\n" +
                             $"🌐 **Username:** {username}\n" +
                             $"🆔 **ID:** `{userId}`\n" +
-                            $"----------------------------------";
+                            $"----------------------------------\n\n";
 
         var statusButtons = new InlineKeyboardMarkup(new[]
         {
@@ -322,20 +321,32 @@ class Program
         {
             try
             {
-                await botClient.SendTextMessageAsync(
-                    chatId: adminId,
-                    text: headerText,
-                    parseMode: ParseMode.Markdown,
-                    cancellationToken: cancellationToken
-                );
+                // Matnli xabar bo'lsa
+                if (message.Type == MessageType.Text)
+                {
+                    await botClient.SendTextMessageAsync(
+                        chatId: adminId,
+                        text: $"📩 **Yangi murojaat!**\n\n" + headerText + message.Text,
+                        replyMarkup: statusButtons,
+                        parseMode: ParseMode.Markdown,
+                        cancellationToken: cancellationToken
+                    );
+                }
+                // Video, Rasm, Hujjat va boshqa media fayllar bo'lsa
+                else
+                {
+                    string userCaption = string.IsNullOrEmpty(message.Caption) ? "" : $"💬 **Izoh:** {message.Caption}";
 
-                await botClient.CopyMessageAsync(
-                    chatId: adminId,
-                    fromChatId: userId,
-                    messageId: message.MessageId,
-                    replyMarkup: statusButtons,
-                    cancellationToken: cancellationToken
-                );
+                    await botClient.CopyMessageAsync(
+                        chatId: adminId,
+                        fromChatId: userId,
+                        messageId: message.MessageId,
+                        caption: $"📩 **Yangi murojaat!**\n\n" + headerText + userCaption,
+                        parseMode: ParseMode.Markdown,
+                        replyMarkup: statusButtons,
+                        cancellationToken: cancellationToken
+                    );
+                }
             }
             catch (Exception ex)
             {

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -13,7 +15,14 @@ using Telegram.Bot.Types.Enums;
 class Program
 {
     private static readonly string BotToken = Environment.GetEnvironmentVariable("BOT_TOKEN") ?? "8826615792:AAG-jKw2Ux2KX6VODBN5otKFCFPgPEqH9uA";
-    private static readonly long AdminId = long.Parse(Environment.GetEnvironmentVariable("ADMIN_ID") ?? "1054100408");
+
+    // Adminlar ID ro'yxati
+    private static readonly HashSet<long> AdminIds = new()
+    {
+        1054100408,
+        1359401473,
+        698494958
+    };
 
     static async Task Main(string[] args)
     {
@@ -66,7 +75,7 @@ class Program
         );
 
         var me = await botClient.GetMeAsync();
-        Console.WriteLine($"Bot @{me.Username} ishga tushdi va Reply-javob tizimi tayyor!");
+        Console.WriteLine($"Bot @{me.Username} ishga tushdi va ko'p adminli Reply-javob tizimi tayyor!");
 
         await Task.Delay(-1, cts.Token);
     }
@@ -80,14 +89,14 @@ class Program
         string username = string.IsNullOrEmpty(message.From.Username) ? "Mavjud emas" : $"@{message.From.Username}";
 
         // ==========================================
-        // 1. ADMIN TOMONIDAN KELGAN XABARLAR
+        // 1. ADMINLAR TOMONIDAN KELGAN XABARLAR
         // ==========================================
-        if (userId == AdminId)
+        if (AdminIds.Contains(userId))
         {
             if (message.Text == "/start")
             {
                 await botClient.SendTextMessageAsync(
-                    chatId: AdminId,
+                    chatId: userId,
                     text: "Salom, Admin! Bot ishlamoqda.\n\nFoydalanuvchi xabarlariga javob berish uchun o'sha xabarga **Reply** (Javob berish) tugmasini bosib yozing.",
                     cancellationToken: cancellationToken
                 );
@@ -106,16 +115,16 @@ class Program
                 {
                     try
                     {
-                        // Admin yozgan xabarni (matn, rasm, stiker va h.k.) foydalanuvchiga nusxalab yuborish
+                        // Admin yozgan xabarni foydalanuvchiga nusxalab yuborish
                         await botClient.CopyMessageAsync(
                             chatId: targetUserId,
-                            fromChatId: AdminId,
+                            fromChatId: userId,
                             messageId: message.MessageId,
                             cancellationToken: cancellationToken
                         );
 
                         await botClient.SendTextMessageAsync(
-                            chatId: AdminId,
+                            chatId: userId,
                             text: "✅ Javobingiz foydalanuvchiga yetkazildi!",
                             replyToMessageId: message.MessageId,
                             cancellationToken: cancellationToken
@@ -124,7 +133,7 @@ class Program
                     catch (Exception ex)
                     {
                         await botClient.SendTextMessageAsync(
-                            chatId: AdminId,
+                            chatId: userId,
                             text: $"❌ Javobni yuborishda xatolik: {ex.Message}",
                             replyToMessageId: message.MessageId,
                             cancellationToken: cancellationToken
@@ -134,7 +143,7 @@ class Program
                 else
                 {
                     await botClient.SendTextMessageAsync(
-                        chatId: AdminId,
+                        chatId: userId,
                         text: "⚠️ Bu xabardan foydalanuvchi ID'sini aniqlab bo'lmadi. Iltimos, bot yuborgan sarlavhali xabarga Reply qiling.",
                         replyToMessageId: message.MessageId,
                         cancellationToken: cancellationToken
@@ -171,21 +180,32 @@ class Program
                             $"🆔 **ID:** `{userId}`\n" +
                             $"----------------------------------";
 
-        // 1. Adminga avval sarlavhani yuboramiz
-        await botClient.SendTextMessageAsync(
-            chatId: AdminId,
-            text: headerText,
-            parseMode: ParseMode.Markdown,
-            cancellationToken: cancellationToken
-        );
+        // Murojaatni BARCHA adminlarga tarqatish
+        foreach (var adminId in AdminIds)
+        {
+            try
+            {
+                // 1. Adminga avval sarlavhani yuboramiz
+                await botClient.SendTextMessageAsync(
+                    chatId: adminId,
+                    text: headerText,
+                    parseMode: ParseMode.Markdown,
+                    cancellationToken: cancellationToken
+                );
 
-        // 2. Ketidan foydalanuvchi yuborgan xabarni (matn, fayl, rasm va h.k.) nusxalaymiz
-        await botClient.CopyMessageAsync(
-            chatId: AdminId,
-            fromChatId: userId,
-            messageId: message.MessageId,
-            cancellationToken: cancellationToken
-        );
+                // 2. Ketidan foydalanuvchi yuborgan xabarni nusxalaymiz
+                await botClient.CopyMessageAsync(
+                    chatId: adminId,
+                    fromChatId: userId,
+                    messageId: message.MessageId,
+                    cancellationToken: cancellationToken
+                );
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Admin ({adminId}) ga xabar yuborishda xatolik: {ex.Message}");
+            }
+        }
 
         // 3. Foydalanuvchiga tasdiq xabari yuboramiz
         await botClient.SendTextMessageAsync(

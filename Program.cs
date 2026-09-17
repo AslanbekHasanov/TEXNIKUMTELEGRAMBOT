@@ -52,7 +52,9 @@ class Program
         string fullName = $"{message.From.FirstName} {message.From.LastName}".Trim();
         string username = string.IsNullOrEmpty(message.From.Username) ? "Mavjud emas" : $"@{message.From.Username}";
 
-        // ADMIN TOMONIDAN KELGAN XABARLAR
+        // ==========================================
+        // 1. ADMIN TOMONIDAN KELGAN XABARLAR
+        // ==========================================
         if (userId == AdminId)
         {
             if (message.Text == "/start")
@@ -65,15 +67,19 @@ class Program
                 return;
             }
 
+            // Admin kimningdir xabariga Reply qilgan bo'lsa
             if (message.ReplyToMessage is { } replyMessage)
             {
                 string originalText = replyMessage.Text ?? replyMessage.Caption ?? "";
-                var match = Regex.Match(originalText, @"🆔 \*\*ID:\*\* `(\d+)`");
+
+                // Matn ichidan ID raqamini moslashuvchan qidirish (ID: 123456 ko'rinishida)
+                var match = Regex.Match(originalText, @"ID:\s*(\d+)");
 
                 if (match.Success && long.TryParse(match.Groups[1].Value, out long targetUserId))
                 {
                     try
                     {
+                        // Admin yozgan xabarni (matn, rasm, stiker va h.k.) foydalanuvchiga nusxalab yuborish
                         await botClient.CopyMessageAsync(
                             chatId: targetUserId,
                             fromChatId: AdminId,
@@ -111,7 +117,9 @@ class Program
             return;
         }
 
-        // ODDIY FOYDALANUVCHIDAN KELGAN XABARLAR
+        // ==========================================
+        // 2. ODDIY FOYDALANUVCHIDAN KELGAN XABARLAR
+        // ==========================================
         if (message.Text == "/start")
         {
             string infoText = "Assalomu alaykum!\n\n" +
@@ -129,19 +137,22 @@ class Program
             return;
         }
 
-        string caption = $"📩 **Yangi xabar!**\n\n" +
-                         $"👤 **Kimdan:** {fullName}\n" +
-                         $"🌐 **Username:** {username}\n" +
-                         $"🆔 **ID:** `{userId}`\n" +
-                         $"-------------------";
+        // Sarlavha matni (Ichida ID: foydalanuvchi_id saqlanadi)
+        string headerText = $"📩 **Yangi murojaat!**\n\n" +
+                            $"👤 **Kimdan:** {fullName}\n" +
+                            $"🌐 **Username:** {username}\n" +
+                            $"🆔 **ID:** `{userId}`\n" +
+                            $"----------------------------------";
 
+        // 1. Adminga avval sarlavhani yuboramiz
         await botClient.SendTextMessageAsync(
             chatId: AdminId,
-            text: caption,
+            text: headerText,
             parseMode: ParseMode.Markdown,
             cancellationToken: cancellationToken
         );
 
+        // 2. Ketidan foydalanuvchi yuborgan xabarni (matn, fayl, rasm va h.k.) nusxalaymiz
         await botClient.CopyMessageAsync(
             chatId: AdminId,
             fromChatId: userId,
@@ -149,6 +160,7 @@ class Program
             cancellationToken: cancellationToken
         );
 
+        // 3. Foydalanuvchiga tasdiq xabari yuboramiz
         await botClient.SendTextMessageAsync(
             chatId: userId,
             text: "Xabaringiz adminga yetkazildi. Rahmat!",
